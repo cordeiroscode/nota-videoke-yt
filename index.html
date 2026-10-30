@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nota do Videokê</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+/* Tela de videokê dos anos 90: azul de TV de tubo, números amarelos, palco no centro */
+:root{
+  --bg:#0b1c70; --bg2:#050f45; --panel:#13298c; --line:#2b45b8;
+  --ink:#f4f6ff; --muted:#aab7ee; --gold:#ffd23a; --pink:#ff4fa3; --ok:#4fe08c; --bad:#ff6d5c;
+  --display:"Bungee","Impact","Arial Black",sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;font-family:var(--body);color:var(--ink);
+  background:radial-gradient(120% 80% at 50% 0%,var(--bg) 0%,var(--bg2) 75%) fixed,var(--bg2);
+}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px 48px;display:grid;gap:20px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,44px);margin:0;color:var(--gold);
+  text-shadow:3px 3px 0 var(--pink),6px 6px 0 rgba(0,0,0,.35);letter-spacing:.02em}
+.sub{color:var(--muted);font-size:14px;margin:0}
+
+.stage{background:linear-gradient(180deg,var(--panel),#0d2077);border:2px solid var(--line);border-radius:14px;
+  padding:20px;display:grid;gap:16px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.row{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:800}
+.note{font-family:var(--display);font-size:clamp(44px,12vw,72px);line-height:1;color:var(--gold);min-width:3ch}
+.note.off{color:#4a5bb0}
+.clock{font-family:var(--display);font-size:28px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.lamp{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px}
+.lamp i{width:14px;height:14px;border-radius:50%;background:#33408a;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15)}
+.lamp.on i{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+
+.tuner{position:relative;height:38px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);overflow:hidden}
+.tuner .zone{position:absolute;top:0;bottom:0;left:40%;width:20%;background:rgba(79,224,140,.18);border-left:1px dashed var(--ok);border-right:1px dashed var(--ok)}
+.tuner .needle{position:absolute;top:4px;bottom:4px;width:6px;margin-left:-3px;border-radius:3px;background:var(--gold);left:50%;transition:left .08s linear,opacity .2s}
+.tuner .ends{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 10px;font-size:12px;color:var(--muted);font-weight:700}
+canvas{width:100%;height:120px;display:block;border-radius:8px;background:var(--bg2);border:1px solid var(--line)}
+
+.controls{display:grid;gap:14px}
+.who{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1 1 200px;min-width:0;font:inherit;font-size:18px;padding:12px 14px;border-radius:10px;border:2px solid var(--line);background:var(--bg2);color:var(--ink)}
+input[type=text]:focus{outline:none;border-color:var(--gold)}
+button{font-family:var(--display);font-size:20px;border:0;border-radius:10px;padding:14px 22px;cursor:pointer;color:var(--bg2);background:var(--gold);box-shadow:0 5px 0 #b38d00}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #b38d00}
+button:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+button.stop{background:var(--pink);color:#fff;box-shadow:0 5px 0 #a8226a}
+button.ghost{background:transparent;color:var(--muted);box-shadow:none;border:2px solid var(--line);font-size:14px;padding:10px 14px}
+.sens{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+.sens input{flex:1 1 180px;accent-color:var(--gold)}
+.hint{color:var(--muted);font-size:14px;line-height:1.5;margin:0}
+.err{color:var(--bad);font-weight:700;margin:0}
+
+.rank{background:rgba(5,15,69,.6);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:10px}
+.rank h2{font-family:var(--display);font-weight:400;font-size:18px;margin:0;color:var(--gold)}
+.rank ol{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.rank li{display:grid;grid-template-columns:2ch 1fr auto;gap:10px;align-items:baseline;font-variant-numeric:tabular-nums}
+.rank li b{font-family:var(--display);font-weight:400;color:var(--gold);font-size:18px}
+.rank li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank li small{color:var(--muted)}
+.empty{color:var(--muted);font-size:14px;margin:0}
+
+.result{position:fixed;inset:0;background:rgba(3,8,40,.88);display:grid;place-items:center;padding:16px;z-index:5}
+.card{text-align:center;display:grid;gap:12px;max-width:520px;width:100%}
+.big{font-family:var(--display);font-size:clamp(110px,32vw,200px);line-height:.9;color:var(--gold);
+  text-shadow:6px 6px 0 var(--pink),12px 12px 0 rgba(0,0,0,.4);font-variant-numeric:tabular-nums}
+.phrase{font-family:var(--display);font-size:clamp(18px,4.5vw,26px);margin:0}
+.parts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+.parts div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 6px}
+.parts b{display:block;font-family:var(--display);font-weight:400;font-size:20px;color:var(--ink)}
+.parts span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+@media (max-width:460px){.parts{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){.tuner .needle{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Nota do Videokê</h1>
+    <p class="sub">Deixe o notebook perto da caixa e cante.</p>
+  </header>
+
+  <section class="stage" aria-live="off">
+    <div class="row">
+      <div>
+        <div class="label">Nota agora</div>
+        <div class="note off" id="note">—</div>
+      </div>
+      <div style="text-align:right">
+        <div class="label">Tempo</div>
+        <div class="clock" id="clock">0:00</div>
+        <div class="lamp" id="lamp"><i></i><span>sem voz</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="label" style="margin-bottom:6px">Afinação</div>
+      <div class="tuner"><div class="zone"></div><div class="ends"><span>baixo</span><span>alto</span></div><div class="needle" id="needle" style="opacity:.25"></div></div>
+    </div>
+    <canvas id="trail" width="720" height="120" aria-label="Linha da melodia cantada"></canvas>
+  </section>
+
+  <section class="controls">
+    <div class="who">
+      <input type="text" id="name" placeholder="Quem vai cantar?" maxlength="30" autocomplete="off">
+      <button id="go">Começar</button>
+    </div>
+    <div class="sens">
+      <label for="gate">Sensibilidade do microfone</label>
+      <input type="range" id="gate" min="1" max="10" value="5">
+    </div>
+    <p class="hint">Aperte <b>Começar</b> quando a música começar e <b>Terminar</b> no fim. Se a lâmpada acender sem ninguém cantar, baixe a sensibilidade; se não acender com voz, aumente.</p>
+    <p class="err" id="err" hidden></p>
+  </section>
+
+  <section class="rank">
+    <h2>Ranking da casa</h2>
+    <ol id="rank"></ol>
+    <p class="empty" id="empty">Ninguém cantou ainda.</p>
+    <div><button class="ghost" id="clear">Zerar ranking</button></div>
+  </section>
+</div>
+
+<div class="result" id="result" hidden>
+  <div class="card">
+    <div class="label" id="rname"></div>
+    <div class="big" id="score">0</div>
+    <p class="phrase" id="phrase"></p>
+    <div class="parts">
+      <div><b id="pPres">0</b><span>Presença</span></div>
+      <div><b id="pTune">0</b><span>Afinação</span></div>
+      <div><b id="pKey">0</b><span>No tom</span></div>
+      <div><b id="pStab">0</b><span>Firmeza</span></div>
+    </div>
+    <div style="margin-top:10px"><button id="again">Próximo!</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const NOTES = ['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
+const MAJOR = [0,2,4,5,7,9,11], MINOR = [0,2,3,5,7,8,10];
+let ctx, analyser, stream, buf, tick, wake, t0, st, running = false;
+const trail = [];
+const cv = $('#trail'), g = cv.getContext('2d');
+
+function gate(){ return 0.004 * Math.pow(1.6, 10 - +$('#gate').value) * 0.4; }
+
+function detect(x, sr){
+  const n = x.length;
+  let rms = 0; for (let i=0;i<n;i++) rms += x[i]*x[i];
+  rms = Math.sqrt(rms/n);
+  const minLag = Math.floor(sr/1100), maxLag = Math.min(Math.floor(sr/75), n>>1);
+  const W = n - maxLag;
+  let e0 = 0; for (let i=0;i<W;i++) e0 += x[i]*x[i];
+  const r = new Float32Array(maxLag+2);
+  let gmax = 0;
+  for (let lag=minLag; lag<=maxLag; lag++){
+    let s=0, e1=0;
+    for (let i=0;i<W;i++){ const b=x[i+lag]; s += x[i]*b; e1 += b*b; }
+    const v = s/Math.sqrt(e0*e1 + 1e-12);
+    r[lag] = v; if (v>gmax) gmax=v;
+  }
+  if (gmax < 0.5) return {f:0, clarity:gmax, rms};
+  let lag = -1;
+  for (let l=minLag+1; l<maxLag; l++){
+    if (r[l] >= 0.9*gmax && r[l]>=r[l-1] && r[l]>=r[l+1]){ lag=l; break; }
+  }
+  if (lag<0) return {f:0, clarity:gmax, rms};
+  const a=r[lag-1], b=r[lag], c=r[lag+1], d=(a-2*b+c);
+  const shift = d ? 0.5*(a-c)/d : 0;
+  return {f: sr/(lag+shift), clarity:r[lag], rms};
+}
+
+function fmt(s){ s=Math.floor(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+
+function draw(){
+  const w=cv.width, h=cv.height;
+  g.clearRect(0,0,w,h);
+  g.strokeStyle='rgba(170,183,238,.12)'; g.lineWidth=1;
+  for (let m=48;m<=84;m+=12){ const y=h-(m-40)/(88-40)*h; g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+  const step = w/200;
+  g.lineWidth=4; g.lineCap='round'; g.strokeStyle='#ffd23a';
+  g.beginPath(); let pen=false;
+  trail.forEach((m,i)=>{
+    const xx=i*step;
+    if (m==null){ pen=false; return; }
+    const y=h-(Math.max(40,Math.min(88,m))-40)/(88-40)*h;
+    if (!pen){ g.moveTo(xx,y); pen=true; } else g.lineTo(xx,y);
+  });
+  g.stroke();
+}
+
+function frame(){
+  analyser.getFloatTimeDomainData(buf);
+  const {f, clarity, rms} = detect(buf, ctx.sampleRate);
+  st.frames++;
+  const voiced = rms > gate() && clarity > 0.85 && f>75 && f<1100;
+  let m = null;
+  if (voiced){
+    m = 69 + 12*Math.log2(f/440);
+    const near = Math.round(m), cents = (m-near)*100;
+    st.voiced++;
+    st.tune += Math.max(0, 1-Math.abs(cents)/50);
+    st.hist[((near%12)+12)%12] += 1;
+    if (st.prev!=null && Math.abs(m-st.prev) < 0.5) st.stable++;
+    st.prev = m;
+    $('#note').textContent = NOTES[((near%12)+12)%12];
+    $('#note').classList.remove('off');
+    const nd=$('#needle'); nd.style.opacity=1; nd.style.left=(50+cents)+'%';
+    nd.style.background = Math.abs(cents)<=10 ? 'var(--ok)' : 'var(--gold)';
+    $('#lamp').classList.add('on'); $('#lamp span').textContent='cantando';
+  } else {
+    st.prev = null;
+    $('#note').classList.add('off');
+    $('#needle').style.opacity=.25;
+    $('#lamp').classList.remove('on'); $('#lamp span').textContent='sem voz';
+  }
+  trail.push(m); if (trail.length>200) trail.shift();
+  draw();
+  $('#clock').textContent = fmt((performance.now()-t0)/1000);
+}
+
+const clamp = v => Math.max(0, Math.min(1, v));
+function compute(){
+  const secs=(performance.now()-t0)/1000;
+  if (st.voiced < 40 || secs < 15) return null;
+  const pres = clamp((st.voiced/st.frames)/0.45);
+  const tune = clamp((st.tune/st.voiced - 0.5)/0.33);
+  const tot = st.hist.reduce((a,b)=>a+b,0);
+  let best=0;
+  for (let k=0;k<12;k++) for (const sc of [MAJOR,MINOR]){
+    const s = sc.reduce((a,iv)=>a+st.hist[(k+iv)%12],0)/tot; if (s>best) best=s;
+  }
+  const key = clamp((best-0.6)/0.3);
+  const stab = clamp((st.stable/st.voiced - 0.3)/0.5);
+  const raw = 0.25*pres + 0.35*tune + 0.2*key + 0.2*stab;
+  return {score: Math.round(55 + 45*raw), pres, tune, key, stab};
+}
+
+function phrase(s){
+  if (s>=95) return 'Nasceu pra isso! Pode gravar disco.';
+  if (s>=90) return 'Show de bola! A plateia tá de pé.';
+  if (s>=80) return 'Mandou muito bem!';
+  if (s>=70) return 'Tá afinadinho, segue o baile.';
+  if (s>=60) return 'Dá pra melhorar, mas a festa tá boa.';
+  return 'Essa foi só o aquecimento. Bora de novo?';
+}
+
+function loadRank(){ try { return JSON.parse(localStorage.getItem('nota-videoke-rank')||'[]'); } catch(e){ return []; } }
+function saveRank(r){ try { localStorage.setItem('nota-videoke-rank', JSON.stringify(r)); } catch(e){} }
+function renderRank(){
+  const r = loadRank(), ol=$('#rank'); ol.textContent='';
+  $('#empty').hidden = r.length>0;
+  r.forEach((it,i)=>{
+    const li=document.createElement('li');
+    const b=document.createElement('b'); b.textContent=it.score;
+    const sp=document.createElement('span'); sp.textContent=(i+1)+'º '+it.name;
+    const sm=document.createElement('small'); sm.textContent=it.date;
+    li.append(b,sp,sm); ol.append(li);
+  });
+}
+
+async function start(){
+  $('#err').hidden = true;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  } catch(e){
+    $('#err').textContent = 'Não consegui acessar o microfone. Libere o microfone para esta página no cadeado ao lado do endereço e tente de novo.';
+    $('#err').hidden = false; return;
+  }
+  ctx = new (window.AudioContext||window.webkitAudioContext)();
+  const src = ctx.createMediaStreamSource(stream);
+  analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
+  src.connect(analyser);
+  buf = new Float32Array(analyser.fftSize);
+  st = {frames:0, voiced:0, tune:0, stable:0, prev:null, hist:new Array(12).fill(0)};
+  trail.length = 0; t0 = performance.now(); running = true;
+  tick = setInterval(frame, 50);
+  try { wake = await navigator.wakeLock?.request('screen'); } catch(e){}
+  const bt=$('#go'); bt.textContent='Terminar'; bt.classList.add('stop');
+}
+
+function stop(){
+  running=false; clearInterval(tick);
+  stream?.getTracks().forEach(t=>t.stop()); ctx?.close();
+  try { wake?.release(); } catch(e){}
+  const bt=$('#go'); bt.textContent='Começar'; bt.classList.remove('stop');
+  $('#lamp').classList.remove('on'); $('#lamp span').textContent='sem voz';
+  const res = compute();
+  const name = $('#name').value.trim() || 'Cantor misterioso';
+  $('#rname').textContent = name;
+  if (!res){
+    $('#score').textContent='?';
+    $('#phrase').textContent = 'Cadê a voz? Cante pelo menos uns 15 segundos (ou aumente a sensibilidade).';
+    ['#pPres','#pTune','#pKey','#pStab'].forEach(id=>$(id).textContent='–');
+    $('#result').hidden=false; return;
+  }
+  $('#pPres').textContent=Math.round(res.pres*100);
+  $('#pTune').textContent=Math.round(res.tune*100);
+  $('#pKey').textContent=Math.round(res.key*100);
+  $('#pStab').textContent=Math.round(res.stab*100);
+  $('#phrase').textContent='';
+  $('#result').hidden=false;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let v = reduce ? res.score : 0;
+  const run = setInterval(()=>{
+    v = Math.min(res.score, v + Math.max(1, Math.round((res.score-v)/8)));
+    $('#score').textContent = v;
+    if (v>=res.score){ clearInterval(run); $('#phrase').textContent=phrase(res.score); }
+  }, 40);
+  const r = loadRank();
+  r.push({name, score:res.score, date:new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})});
+  r.sort((a,b)=>b.score-a.score); saveRank(r.slice(0,10)); renderRank();
+}
+
+$('#go').addEventListener('click', ()=> running ? stop() : start());
+$('#again').addEventListener('click', ()=>{ $('#result').hidden=true; $('#name').value=''; $('#name').focus(); });
+$('#clear').addEventListener('click', ()=>{ saveRank([]); renderRank(); });
+renderRank(); draw();
+})();
+</script>
+</body>
+</html>
